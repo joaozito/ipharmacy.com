@@ -1,0 +1,81 @@
+import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_facebook_login/flutter_facebook_login.dart';
+import 'package:flutter_auth_buttons/flutter_auth_buttons.dart';
+
+void main() => runApp(LoginFacebook());
+
+class LoginFacebook  extends StatefulWidget {
+  @override
+    _PageState createState() => _PageState();
+  }
+
+  class _PageState extends State<LoginFacebook> {
+
+  FirebaseAuth _auth = FirebaseAuth.instance;
+  FirebaseUser myUser;
+  bool isLogged = false;
+
+  // Conectando o login com o Facebook usando o Firebase
+  Future<FirebaseUser> _loginAuthFacebook() async {
+    var facebookLogin = new FacebookLogin();
+    var result = await facebookLogin.logInWithReadPermissions(['email']);
+
+    debugPrint(result.status.toString());
+
+    if (result.status == FacebookLoginStatus.loggedIn) {
+      FirebaseUser user = await _auth.signInWithFacebook(
+          accessToken: result.accessToken.token).then((onValue) {
+            isLogged = true;
+      });
+      return user;
+    }
+    return null;
+  }
+
+  // Realizar Logout
+  void _logOut() async {
+    await _auth.signOut().then((response) {
+      isLogged = false;
+      setState(() {});
+    });
+  }
+
+  // Realizar Login
+  void _logIn() {
+    _loginAuthFacebook().then((response) {
+      if (response != null) {
+        myUser = response;
+        isLogged = true;
+        setState(() {});
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold (
+      appBar: AppBar(
+        title: Text( isLogged ? "Página de Perfil": "Login Facebook"),
+        actions: <Widget>[
+          IconButton (
+            icon: Icon(Icons.power_settings_new),
+            onPressed: _logOut,
+          )
+        ],
+      ),
+
+      body: Center(
+        child: isLogged ? Column (
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Text("Nome: " + myUser.displayName),
+            Image.network(myUser.photoUrl),
+          ],
+        ) : FacebookSignInButton(
+          onPressed: _logIn,
+        ),
+      ),
+    );
+  }
+}
